@@ -8,6 +8,7 @@ args.add_argument('--search', action='store_true', help='search for encrypted me
 args.add_argument('--folder', help='selected mailbox folder', default='INBOX')
 args.add_argument('--list', help='show mailbox folders', action='store_true')
 args.add_argument('--account', help='override used account')
+args.add_argument('--subject', help='set subject to given text')
 
 args = args.parse_args()
 
@@ -22,10 +23,46 @@ server   = conf[account]['server']
 username = conf[account]['user']
 password = conf[account]['pass']
 
-# open imap mailbox
-from imaplib import IMAP4_SSL as imap
+# reinserted message through context libs
+import contextlib
+import imaplib
+import email
 
-with imap(server) as m:
+@contextlib.contextmanager
+def ReinsertableMessage(session, mailbox, message_id):
+
+  # select mailbox
+  ok, response = session.select(mailbox)
+  if ok != 'OK': raise Exception(response)
+
+  # fetch message and split response
+  ok, response = session.fetch(str(message_id), '(FLAGS INTERNALDATE RFC822)')
+  if ok != 'OK': raise Exception(response)
+  metadata = response[0][0]
+  rfcbody  = response[0][1]
+
+  # parse flags, date and message body
+  flags = ' '.join([f.decode() for f in imaplib.ParseFlags(metadata)])
+  date = imaplib.Internaldate2tuple(metadata)
+  mail = email.message_from_bytes(rfcbody)
+
+  # debug
+  print('DEBUG - flags:', flags)
+  print('DEBUG - date: ', date)
+
+  # yield mail for editing
+  yield mail
+
+  # append edited message to mailbox
+  session.append(mailbox, flags, date, mail.as_bytes())
+
+  # delete old message
+  session.store(message_id, '+FLAGS', '\\DELETED')
+  session.expunge()
+
+
+# open imap mailbox
+with imaplib.IMAP4_SSL(server) as m:
 
   m.login(username, password)
   typ, messages = m.select(f'"{args.folder}"', readonly=True)
@@ -57,34 +94,13 @@ with imap(server) as m:
       print(msg[0][1].decode())
 
 
+    # append to subject line
+    if args.subject:
+      with ReinsertableMessage(m, 'INBOX', msgid) as msg:
 
-# reinserted message through context libs
-import contextlib
-import imaplib
-import email
+        #subj = msg['Subject']
+        del msg['Subject']
+        msg['Subject'] = args.subject
 
-@contextlib.contextmanager
-def ReinsertableMessage(session, mailbox, message_id):
 
-  # select mailbox
-  ok, response = session.select(mailbox)
-  if ok != 'OK': raise Exception(response)
 
-  # fetch message and split response
-  ok, response = session.fetch(str(message_id), '(FLAGS INTERNALDATE RFC822)')
-  if ok != 'OK': raise Exception(response)
-  metadata = response[0][0]
-  rfcbody  = response[0][1]
-
-  # parse flags, date and message body
-  flags = ' '.join([f.decode() for f in imaplib.ParseFlags(metadata)])
-  date = imaplib.Internaldate2tuple(metadata)
-  mail = email.message_from_bytes(rfcbody)
-
-  # yield mail for editing
-  yield mail
-
-  # append edited message to mailbox
-  session.append(mailbox, flags, date, mail.as_bytes())
-
-  # TODO: delete old message?: session.store(...)
