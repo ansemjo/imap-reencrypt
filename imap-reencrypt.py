@@ -1,13 +1,14 @@
 #!/usr/bin/python
 
 # local library
-from lib.config import get_imap_configuration
+from lib.config import get_imap_configuration as config
 from lib.mail import Mail
-import lib.gpg as gpg
+from lib import gpgmessage
 
 # system imports
 import imaplib
 import argparse
+import gnupg
 
 # parse commandline arguments
 args = argparse.ArgumentParser()
@@ -18,7 +19,10 @@ args.add_argument('--account', help='override used account')
 args = args.parse_args()
 
 # get configuration
-server, username, password = get_imap_configuration('config.ini', args.account)
+server, username, password = config('config.ini', args.account)
+
+# initialize gpg
+gpg = gnupg.GPG(use_agent=True)
 
 # open imap mailbox
 with imaplib.IMAP4_SSL(server) as session:
@@ -53,8 +57,8 @@ with imaplib.IMAP4_SSL(server) as session:
     print('inline   :', ', '.join(inline))
 
     oldkey, newkey = (
-      'B9F738A13373DB0D6CF5AA04BEBED18385323A4B',
       '16FF4A61A3E4E52F1A1D42903CEAD59D197D19A7',
+      'B9F738A13373DB0D6CF5AA04BEBED18385323A4B',
     )
 
     def repack(message):
@@ -63,7 +67,7 @@ with imaplib.IMAP4_SSL(server) as session:
         for p in payload:
           repack(p)
       else:
-        n = gpg.repack(payload, [oldkey], [newkey])
+        n = gpgmessage.repack(gpg, payload, [oldkey], [newkey], onlyfor=oldkey)
         message.set_payload(n)
 
     # iterate over all found messages
