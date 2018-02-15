@@ -1,141 +1,84 @@
 #!/usr/bin/python
 
-# commandline arguments
-import argparse
-args = argparse.ArgumentParser()
+# local library
+from lib.config import get_imap_configuration
+from lib.mail import Mail
+from lib.gpg import debug_decrypt, reencrypt
 
+# system imports
+import imaplib
+import argparse
+
+# parse commandline arguments
+args = argparse.ArgumentParser()
 args.add_argument('--search', action='store_true', help='search for encrypted messages on server')
 args.add_argument('--folder', help='selected mailbox folder', default='INBOX')
 args.add_argument('--list', help='show mailbox folders', action='store_true')
 args.add_argument('--account', help='override used account')
-args.add_argument('--subject', help='set subject to given text')
-
 args = args.parse_args()
 
-# configuration
-import configparser
-
-conf = configparser.ConfigParser()
-conf.read('config.ini')
-
-account = conf.defaults()['account'] # if args.account == None else args.account
-server   = conf[account]['server']
-username = conf[account]['user']
-password = conf[account]['pass']
-
-# reinserted message through context libs
-import contextlib
-import imaplib
-import email
-
-@contextlib.contextmanager
-def ReinsertableMessage(session, mailbox, message_id):
-
-  # select mailbox
-  ok, response = session.select(mailbox)
-  if ok != 'OK': raise Exception(response)
-
-  # fetch message and split response
-  ok, response = session.fetch(str(message_id), '(FLAGS INTERNALDATE RFC822)')
-  if ok != 'OK': raise Exception(response)
-  metadata = response[0][0]
-  rfcbody  = response[0][1]
-
-  # parse flags, date and message body
-  flags = ' '.join([f.decode() for f in imaplib.ParseFlags(metadata)])
-  date = imaplib.Internaldate2tuple(metadata)
-  mail = email.message_from_bytes(rfcbody)
-
-  # yield mail for editing
-  yield mail
-
-  # append edited message to mailbox
-  session.append(mailbox, flags, date, mail.as_bytes())
-
-  # delete old message
-  session.store(message_id, '+FLAGS', '\\DELETED')
-  #session.expunge()
-
-# GnuPG
-import gnupg
-gpg = gnupg.GPG(use_agent=True)
-
-# pgp message tags
-PGP_BEGIN = '-----BEGIN PGP MESSAGE-----\r\n'
-PGP_END = '-----END PGP MESSAGE-----\r\n'
-
-# split a message at PGP boundaries
-def split_pgp_message(message):
-  start = message.find(PGP_BEGIN)
-  end = message.find(PGP_END) + len(PGP_END)
-  return ((message[:start], message[end:]), message[start:end])
+# get configuration
+server, username, password = get_imap_configuration('config.ini', args.account)
 
 # open imap mailbox
-with imaplib.IMAP4_SSL(server) as m:
+with imaplib.IMAP4_SSL(server) as session:
 
-  m.login(username, password)
-  typ, messages = m.select(f'"{args.folder}"', readonly=True)
-  if typ != 'OK':
-    raise Exception(messages[0].decode())
+  # login
+  session.login(username, password)
 
+  # test opening mailbox
+  mailbox = f'"{args.folder}"'
+  typ, messages = session.select(mailbox, readonly=True)
+  if typ != 'OK': raise Exception(messages[0].decode())
+
+  # LIST ALL FOLDERS
   if args.list:
-    folders = '\n'.join([f.decode() for f in m.list()[1]])
+    folders = '\n'.join([f.decode() for f in session.list()[1]])
     print(f'Mailbox folders:\n{folders}')
 
+  # SEARCH AND DISPLAY ENCRYPTED MESSAGES
+  elif args.search:
+    print(f'Searching for encrypted messages in {args.folder} ...')
+    mime = inline = []
+
+    # search for PGP/MIME messages
+    ok, res = session.search(None, '(HEADER Content-Type "pgp-encrypted")')
+    if ok == 'OK': mime = res[0].decode().split()
+
+    # search for inline messages (boundaries in body)
+    ok, res = session.search(None, f'(BODY "-----BEGIN PGP MESSAGE-----")')
+    if ok == 'OK': inline = res[0].decode().split()
+    
+    print('pgp/mime :', ', '.join(mime))
+    print('inline   :', ', '.join(inline))
+
+    oldkey = '16FF4A61A3E4E52F1A1D42903CEAD59D197D19A7'
+    newkey = 'B9F738A13373DB0D6CF5AA04BEBED18385323A4B'
+
+    # iterate over all found messages
+    for msgid in mime + inline:
+
+      with Mail(session, mailbox, msgid) as mail:
+        payload = mail['mail'].get_payload()
+
+        if isinstance(payload, list):
+          #for pl in payload:
+          #  debug_decrypt(pl.get_payload())
+          pass
+        else:
+          decr = debug_decrypt(payload)
+          reencrypt(decr, set([oldkey]), set([newkey]))
+
+    #m.expunge()
+
+  # SHOW A SINGLE MESSAGE
   else:
 
-    if args.search:
+    msgid = input('Enter message ID: ')
+    ok, msg = session.fetch(msgid, '(RFC822)')
 
-      print(f'Searching for encrypted messages in {args.folder} ...')
-
-      ok, res = m.search(None, '(HEADER Content-Type "pgp-encrypted")')
-      if ok == 'OK':
-        mime = res[0].decode().split()
-        print(mime)
-        print('pgp/mime :', ', '.join(mime))
-
-      ok, res = m.search(None, f'(BODY "-----BEGIN PGP MESSAGE-----")')
-      if ok == 'OK':
-        inline = res[0].decode().split()
-        print(inline)
-        print('inline   :', ', '.join(inline))
-
-      def pgp_parts(payload):
-        if PGP_BEGIN in payload:
-          bounds, pgp = split_pgp_message(payload)
-          decr = gpg.decrypt(pgp)
-          if decr: print(decr.data)
-
-      for msgid in mime + inline:
-
-        with ReinsertableMessage(m, 'INBOX', msgid) as msg:
-          payload = msg.get_payload()
-          if isinstance(payload, list):
-            for idx, pl in enumerate(payload):
-              print(f'---------- PART {idx} ------------')
-              pgp_parts(pl.get_payload())
-          else:
-            pgp_parts(payload)
-
-      m.expunge()
-
-
-    else:
-
-      msgid = input('Enter message ID: ')
-      ok, msg = m.fetch(msgid, '(RFC822)')
-
-      if ok == 'OK':
-        print(msg[0][1].decode())
-
-
-    # append to subject line
-    if args.subject:
-      with ReinsertableMessage(m, 'INBOX', msgid) as msg:
-
-        #subj = msg['Subject']
-        del msg['Subject']
-        msg['Subject'] = args.subject
+    if ok == 'OK':
+      print(msg[0][1].decode())
 
 
 
