@@ -11,12 +11,22 @@ import gnupg
 
 # parse commandline arguments
 args = argparse.ArgumentParser()
-args.add_argument('--search', action='store_true', help='search for encrypted messages on server')
-args.add_argument('--repack', action='store_true', help='reencrypt messages after search')
-args.add_argument('--dry-run', action='store_true', help='dry-run, do not change mails on server')
-args.add_argument('--folder', help='selected mailbox folder', default='INBOX')
-args.add_argument('--list', help='show mailbox folders', action='store_true')
-args.add_argument('--account', help='override used account')
+
+args.add_argument('--dry-run', action='store_true', help='Perform a dry-run. Do not change mails on server.')
+args.add_argument('--mailbox', help='Select Mailbox folder.', default='INBOX')
+args.add_argument('--account', help='Select account from config.ini file.')
+
+grp_mode = args.add_argument_group('tasks')
+grp_mode.add_argument('--single', help='Show a single message.', type=int)
+grp_mode.add_argument('--search', help='Search for encrypted messages on server.', action='store_true')
+grp_mode.add_argument('--repack', help='Re-encrypt messages after searching or single selection.', action='store_true')
+grp_mode.add_argument('--list', help='List Mailbox folders.', action='store_true')
+
+grp_gpg = args.add_argument_group('gpg key selection')
+grp_gpg.add_argument('--delkey', action='append', help='Remove keys from recipient list. (multi)', default=[])
+grp_gpg.add_argument('--addkey', action='append', help='Add keys to recipient list. (multi)', default=[])
+grp_gpg.add_argument('--only-for', help='Only repack messages encrypted to this key.')
+
 args = args.parse_args()
 
 # get configuration
@@ -25,11 +35,13 @@ server, username, password = config('config.ini', args.account)
 # initialize gpg
 gpg = gnupg.GPG(use_agent=True)
 
+print(args)
+
 # open imap mailbox
 with imap.session(server, username, password) as session:
 
   # test opening mailbox
-  mailbox = imap.escape_mailbox(args.folder)
+  mailbox = imap.escape_mailbox(args.mailbox)
   imap.cd(session, mailbox)
 
   # LIST ALL FOLDERS
@@ -49,13 +61,8 @@ with imap.session(server, username, password) as session:
     # ALSO RE-ENCRYPT MESSAGES
     if args.repack:
 
-      delkey, addkey = (
-        '16FF4A61A3E4E52F1A1D42903CEAD59D197D19A7', # testing
-        'B9F738A13373DB0D6CF5AA04BEBED18385323A4B', # another
-      )
-
       imap.repack_pgp(session, gpg, mailbox, msglist,
-        [delkey], [addkey], dryrun=args.dry_run)
+        args.delkey, args.addkey, args.only_for, args.dry_run)
 
   # SHOW A SINGLE MESSAGE
   else:
