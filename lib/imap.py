@@ -10,8 +10,8 @@ def session(server, username, password):
     connection.login(username, password)
     yield connection
 
-# escape mailbox string
-escape_mailbox = lambda mailbox: f'"{mailbox}"'
+# quote mailbox string
+quoted_mailbox = lambda m: f'"{m}"' if m[0] != '"' or m[-1] != '"' else m
 
 # change / select mailbox
 def cd(session, mailbox):
@@ -27,9 +27,8 @@ def ls(session):
   return f'Mailbox folders:\n{folders}'
 
 # fetch a single message
-def fetch(session, msgid=None):
-  if msgid == None:
-    msgid = input('Enter message ID: ')
+def fetch(session, mailbox, msgid):
+  cd(session, mailbox)
   ok, response = session.fetch(msgid, '(RFC822)')
   if ok == 'OK':
     return(response[0][1].decode())

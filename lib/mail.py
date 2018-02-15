@@ -3,7 +3,7 @@ import contextlib
 import imaplib
 import email
 
-from lib.consolecolor import color
+from lib.consolecolor import color, COLOR
 
 @contextlib.contextmanager
 def Mail(session, mailbox, message_id, expunge=False):
@@ -26,8 +26,9 @@ def Mail(session, mailbox, message_id, expunge=False):
   mail = email.message_from_bytes(rfcbody)
 
   # debug
-  with color('34'):
+  with color(COLOR.BLUE):
     print('From    :', mail['From'])
+    print('Date    :', mail['Date'])
     print('Subject :', mail['Subject'])
 
   # yield mail for editing
@@ -37,7 +38,8 @@ def Mail(session, mailbox, message_id, expunge=False):
     # if message was edited, append to mailbox and
   # set deletion flag on old message
   if state['dirty'] == True:
-    print('Message dirty. Reuploading ..')
+    with color(COLOR.RED):
+      print('Message modified. Reuploading ..')
     session.append(mailbox, flags, date, mail.as_bytes())
     session.store(message_id, '+FLAGS', '\\DELETED')
 
