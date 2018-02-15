@@ -57,19 +57,25 @@ with imaplib.IMAP4_SSL(server) as session:
       '16FF4A61A3E4E52F1A1D42903CEAD59D197D19A7',
     )
 
+    def repack(message):
+      payload = message.get_payload()
+      if isinstance(payload, list):
+        for p in payload:
+          repack(p)
+      else:
+        n = gpg.repack(payload, [oldkey], [newkey])
+        message.set_payload(n)
+
     # iterate over all found messages
     for msgid in mime + inline:
 
       with Mail(session, mailbox, msgid) as mail:
-        payload = mail['mail'].get_payload()
+        email = mail['mail']
+        repack(email)
+        print(mail['mail'])
+        mail['dirty'] = True
 
-        if isinstance(payload, list):
-          for pl in payload:
-            print(gpg.repack(pl.get_payload(), [oldkey], [newkey]))
-        else:
-          print(gpg.repack(payload, [oldkey], [newkey]))
-
-    #m.expunge()
+    session.expunge()
 
   # SHOW A SINGLE MESSAGE
   else:
