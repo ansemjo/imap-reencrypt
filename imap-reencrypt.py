@@ -46,10 +46,6 @@ def ReinsertableMessage(session, mailbox, message_id):
   date = imaplib.Internaldate2tuple(metadata)
   mail = email.message_from_bytes(rfcbody)
 
-  # debug
-  print('DEBUG - flags:', flags)
-  print('DEBUG - date: ', date)
-
   # yield mail for editing
   yield mail
 
@@ -58,8 +54,21 @@ def ReinsertableMessage(session, mailbox, message_id):
 
   # delete old message
   session.store(message_id, '+FLAGS', '\\DELETED')
-  session.expunge()
+  #session.expunge()
 
+# GnuPG
+import gnupg
+gpg = gnupg.GPG(use_agent=True)
+
+# pgp message tags
+PGP_BEGIN = '-----BEGIN PGP MESSAGE-----\r\n'
+PGP_END = '-----END PGP MESSAGE-----\r\n'
+
+# split a message at PGP boundaries
+def split_pgp_message(message):
+  start = message.find(PGP_BEGIN)
+  end = message.find(PGP_END) + len(PGP_END)
+  return ((message[:start], message[end:]), message[start:end])
 
 # open imap mailbox
 with imaplib.IMAP4_SSL(server) as m:
@@ -81,17 +90,43 @@ with imaplib.IMAP4_SSL(server) as m:
 
       ok, res = m.search(None, '(HEADER Content-Type "pgp-encrypted")')
       if ok == 'OK':
-        print('pgp/mime :', ', '.join(res[0].decode().split()))
+        mime = res[0].decode().split()
+        print(mime)
+        print('pgp/mime :', ', '.join(mime))
 
-      ok, res = m.search(None, '(BODY "-----BEGIN PGP MESSAGE-----")')
+      ok, res = m.search(None, f'(BODY "-----BEGIN PGP MESSAGE-----")')
       if ok == 'OK':
-        print('inline   :', ', '.join(res[0].decode().split()))
+        inline = res[0].decode().split()
+        print(inline)
+        print('inline   :', ', '.join(inline))
 
-    msgid = input('Enter message ID: ')
-    ok, msg = m.fetch(msgid, '(RFC822)')
+      def pgp_parts(payload):
+        if PGP_BEGIN in payload:
+          bounds, pgp = split_pgp_message(payload)
+          decr = gpg.decrypt(pgp)
+          if decr: print(decr.data)
 
-    if ok == 'OK':
-      print(msg[0][1].decode())
+      for msgid in mime + inline:
+
+        with ReinsertableMessage(m, 'INBOX', msgid) as msg:
+          payload = msg.get_payload()
+          if isinstance(payload, list):
+            for idx, pl in enumerate(payload):
+              print(f'---------- PART {idx} ------------')
+              pgp_parts(pl.get_payload())
+          else:
+            pgp_parts(payload)
+
+      m.expunge()
+
+
+    else:
+
+      msgid = input('Enter message ID: ')
+      ok, msg = m.fetch(msgid, '(RFC822)')
+
+      if ok == 'OK':
+        print(msg[0][1].decode())
 
 
     # append to subject line
