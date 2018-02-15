@@ -9,7 +9,7 @@ TAG_END   = '-----END PGP MESSAGE-----\r\n'
 NO_SECKEY = 'decryption failed: No secret key'
 
 # custom exceptions
-sys.tracebacklimit = 0
+#sys.tracebacklimit = 0
 class DecryptionError(Exception): pass
 class NoSecretKeyError(Exception): pass
 class EncryptionError(Exception): pass
@@ -56,7 +56,6 @@ def reencrypt(gpg, decr, delkeys, newkeys):
   r = decr.recipients
   r -= set(delkeys)
   r |= set(newkeys)
-  r -= set(['80615870F5BAD690333686D0F2AD85AC1E42B367']) # Werner Koch
   
   # output new set
   with color(COLOR.YELLOW):
