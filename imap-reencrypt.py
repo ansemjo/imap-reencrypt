@@ -3,7 +3,7 @@
 # local library
 from lib.config import get_imap_configuration
 from lib.mail import Mail
-from lib.gpg import debug_decrypt, reencrypt
+import lib.gpg as gpg
 
 # system imports
 import imaplib
@@ -52,8 +52,10 @@ with imaplib.IMAP4_SSL(server) as session:
     print('pgp/mime :', ', '.join(mime))
     print('inline   :', ', '.join(inline))
 
-    oldkey = '16FF4A61A3E4E52F1A1D42903CEAD59D197D19A7'
-    newkey = 'B9F738A13373DB0D6CF5AA04BEBED18385323A4B'
+    oldkey, newkey = (
+      'B9F738A13373DB0D6CF5AA04BEBED18385323A4B',
+      '16FF4A61A3E4E52F1A1D42903CEAD59D197D19A7',
+    )
 
     # iterate over all found messages
     for msgid in mime + inline:
@@ -62,12 +64,10 @@ with imaplib.IMAP4_SSL(server) as session:
         payload = mail['mail'].get_payload()
 
         if isinstance(payload, list):
-          #for pl in payload:
-          #  debug_decrypt(pl.get_payload())
-          pass
+          for pl in payload:
+            print(gpg.repack(pl.get_payload(), [oldkey], [newkey]))
         else:
-          decr = debug_decrypt(payload)
-          reencrypt(decr, set([oldkey]), set([newkey]))
+          print(gpg.repack(payload, [oldkey], [newkey]))
 
     #m.expunge()
 
