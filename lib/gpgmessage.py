@@ -9,7 +9,7 @@ TAG_END   = '-----END PGP MESSAGE-----\r\n'
 NO_SECKEY = 'decryption failed: No secret key'
 
 # custom exceptions
-#sys.tracebacklimit = 0
+sys.tracebacklimit = 0
 class DecryptionError(Exception): pass
 class NoSecretKeyError(Exception): pass
 class EncryptionError(Exception): pass
@@ -43,17 +43,16 @@ def decrypt(gpg, message):
   # if unsuccessful, raise exception
   else:
     if NO_SECKEY in d.stderr:
-      key = re.search(r'gpg: encrypted with [^\n]*', d.stderr)
-      raise NoSecretKeyError(key[0] if key else None)
+      raise NoSecretKeyError('No secret key available.')
     else:
       raise DecryptionError(d.status)
 
 
 # encrypt a message for an augmented recipient list
-def reencrypt(gpg, decr, delkeys, newkeys):
+def reencrypt(gpg, decr, delkeys, newkeys, del_allkeys):
 
   # remove from / add keys to recipient set
-  r = decr.recipients
+  r = decr.recipients if not del_allkeys else set([])
   r -= set(delkeys)
   r |= set(newkeys)
   
@@ -72,7 +71,7 @@ def reencrypt(gpg, decr, delkeys, newkeys):
   
 
 # combine the above two functions
-def repack(gpg, message, delkeys, newkeys, onlyfor=None):
+def repack(gpg, message, delkeys, newkeys, del_allkeys=False, only_for=None):
 
   # check for PGP tags
   if TAG_BEGIN in message and TAG_END in message:
@@ -80,11 +79,15 @@ def repack(gpg, message, delkeys, newkeys, onlyfor=None):
     # split message
     inner, outer = message_split(message)
 
+    # dirty hack ..
+    if 'Charset: windows-1252' in inner:
+      inner = inner.replace('=3D', '=')
+
     # decrypt, optionally check if we are a recipient and reecnrypt
     crypt = decrypt(gpg, inner)
-    if onlyfor != None and onlyfor not in crypt.recipients:
+    if only_for != None and only_for not in crypt.recipients:
       raise RecipientError('not for intended recipient')
-    crypt = reencrypt(gpg, crypt, delkeys, newkeys)
+    crypt = reencrypt(gpg, crypt, delkeys, newkeys, del_allkeys)
 
     # return respliced message
     return message_splice(str(crypt), outer)

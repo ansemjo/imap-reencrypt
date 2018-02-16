@@ -18,15 +18,17 @@ args.add_argument('--account', help='Select account from config.ini file.')
 
 grp_mode = args.add_argument_group('tasks')
 exl_mode = grp_mode.add_mutually_exclusive_group(required=True)
-exl_mode.add_argument('--single', help='Show a single message.', type=int)
+exl_mode.add_argument('--single', help='Show a single message.', metavar='MSGNUM', type=int)
 exl_mode.add_argument('--search', help='Search for encrypted messages on server.', action='store_true')
 grp_mode.add_argument('--repack', help='Re-encrypt messages after searching or single selection.', action='store_true')
 exl_mode.add_argument('--list', help='List Mailbox folders.', action='store_true')
 
 grp_gpg = args.add_argument_group('gpg key selection')
-grp_gpg.add_argument('--delkey', action='append', help='Remove keys from recipient list. (multi)', default=[])
-grp_gpg.add_argument('--addkey', action='append', help='Add keys to recipient list. (multi)', default=[])
-grp_gpg.add_argument('--only-for', help='Only repack messages encrypted to this key.')
+grp_gpg.add_argument('--delkey', metavar='KEYGRIP', action='append', help='Remove keys from recipient list. (multi)', default=[])
+grp_gpg.add_argument('--addkey', metavar='KEYGRIP', action='append', help='Add keys to recipient list. (multi)', default=[])
+grp_gpg.add_argument('--del-allkeys', action='store_true', help='Clear recipient list before adding with --addkey.')
+grp_gpg.add_argument('--only-for', metavar='KEYGRIP', help='Only repack messages that were encrypted to this key.')
+
 
 args = args.parse_args()
 
@@ -54,11 +56,12 @@ with imap.session(server, username, password) as session:
 
   # SHOW A SINGLE MESSAGE
   if args.single:
-    print(imap.fetch(session, mailbox, str(args.single)))
+    if not args.repack:
+      print(imap.fetch(session, mailbox, str(args.single)))
     msglist = [str(args.single)]
 
   # ALSO RE-ENCRYPT MESSAGES
   if args.repack:
     imap.repack_pgp(session, gpg, mailbox, msglist,
-      args.delkey, args.addkey, args.only_for, args.dry_run)
+      args.delkey, args.addkey, args.del_allkeys, args.only_for, args.dry_run)
 
