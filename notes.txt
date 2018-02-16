@@ -1,9 +1,0 @@
-the gnupg lib does not allow to see for which keys a message was encrypted
-beforehand. thus, create a new gpg home and import only the private key
-of my yubi key, then point the library to that gnupghome. all messages for
-other keys should just fail to decrypt.
-
-split to multiple files for better overview
-
-do not automatically use ReinsertableMessage .. if there was no change, we
-do not want to reupload anything!
