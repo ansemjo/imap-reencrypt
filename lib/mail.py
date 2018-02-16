@@ -27,6 +27,7 @@ def Mail(session, mailbox, message_id, expunge=False):
 
   # debug
   with color(COLOR.BLUE):
+    print('Message ID:', mailbox, f'({message_id})')
     print('From    :', mail['From'])
     print('Date    :', mail['Date'])
     print('Subject :', mail['Subject'])

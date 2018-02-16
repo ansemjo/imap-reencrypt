@@ -30,7 +30,7 @@ def decrypt(gpg, message):
   d = gpg.decrypt(message)
 
   # if decryption successful
-  if d.ok:
+  if (d.ok or (d.status == 'signature valid' and d.valid)) and d.data != '':
     d.recipients = set(re.findall(r'KEY_CONSIDERED ([A-F0-9]+)', d.stderr))
 
     # output original recipients
@@ -95,3 +95,11 @@ def repack(gpg, message, delkeys, newkeys, del_allkeys=False, only_for=None):
   # just return input if tags not found
   else:
     return message
+
+# further notes
+#
+# CHECK VALIDITY
+# import time
+# now = int(time.time())
+# exp = gpg.search_keys(fingerprint)[0].get('expires')
+# now < int(exp)

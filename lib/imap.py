@@ -2,6 +2,7 @@ import imaplib
 import contextlib
 from lib.mail import Mail
 from lib import gpgmessage
+from lib.consolecolor import color, COLOR
 
 # imap session context
 @contextlib.contextmanager
@@ -68,9 +69,20 @@ def repack_pgp(session, gpg, mailbox, msglist,
   for msgid in msglist:
 
     with Mail(session, mailbox, msgid) as mail:
-      email = mail['mail']
-      repack(email)
-      if dryrun: print(mail['mail'])
-      if not dryrun: mail['dirty'] = True
+      try:
+        email = mail['mail']
+        repack(email)
+        if dryrun: print(mail['mail'])
+        if not dryrun: mail['dirty'] = True
+        with color(COLOR.GREEN):
+          print('Repack OK.')
+      except gpgmessage.NoSecretKeyError:
+        with color(COLOR.RED):
+          print('No matching secret key. Skip.')
+        mail['dirty'] = False
+      except gpgmessage.RecipientError:
+        with color(COLOR.YELLOW):
+          print('Given key was not a recipient. Skip.')
+        mail['dirty'] = False
 
   if not dryrun: session.expunge()
