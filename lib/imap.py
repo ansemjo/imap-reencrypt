@@ -66,24 +66,26 @@ def repack_pgp(session, gpg, mailbox, msglist,
       newp = gpgmessage.repack(gpg, payload, delkeys, addkeys, del_allkeys, only, always_trust)
       message.set_payload(newp)
 
-  # iterate over all messages
-  for msgid in msglist:
+  try:
+    # iterate over all messages
+    for msgid in msglist:
 
-    with Mail(session, mailbox, msgid) as mail:
-      try:
-        email = mail['mail']
-        repack(email)
-        if dryrun: print(mail['mail'])
-        if not dryrun: mail['dirty'] = True
-        with color(COLOR.GREEN):
-          print('Repack OK.')
-      except gpgmessage.NoSecretKeyError:
-        with color(COLOR.RED):
-          print('No matching secret key. Skip.')
-        mail['dirty'] = False
-      except gpgmessage.RecipientError:
-        with color(COLOR.YELLOW):
-          print('Given key was not a recipient. Skip.')
-        mail['dirty'] = False
+      with Mail(session, mailbox, msgid) as mail:
+        try:
+          email = mail['mail']
+          repack(email)
+          if dryrun: print(mail['mail'])
+          if not dryrun: mail['dirty'] = True
+          with color(COLOR.GREEN):
+            print('Repack OK.')
+        except gpgmessage.NoSecretKeyError:
+          with color(COLOR.RED):
+            print('No matching secret key. Skip.')
+          mail['dirty'] = False
+        except gpgmessage.RecipientError:
+          with color(COLOR.YELLOW):
+            print('Given key was not a recipient. Skip.')
+          mail['dirty'] = False
 
-  if not dryrun: session.expunge()
+  finally:
+    if not dryrun: session.expunge()
