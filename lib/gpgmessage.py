@@ -67,6 +67,7 @@ def reencrypt(gpg, decr, delkeys, newkeys, del_allkeys, always_trust):
   if encr.ok:
     return encr
   else:
+    print(encr.stderr)
     raise EncryptionError(encr.status)
   
 
