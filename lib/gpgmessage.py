@@ -80,9 +80,10 @@ def repack(gpg, message, delkeys, newkeys, del_allkeys=False, only_for=None, alw
     # split message
     inner, outer = message_split(message)
 
-    # dirty hack ..
-    if 'Charset: windows-1252' in inner:
+    # dirty hacks ..
+    if 'Charset: windows-1252' in inner or '(MingW32)' in inner:
       inner = inner.replace('=3D', '=')
+      inner = inner.replace('=20\r\n', '\r\n')
 
     # decrypt, optionally check if we are a recipient and reecnrypt
     crypt = decrypt(gpg, inner)
