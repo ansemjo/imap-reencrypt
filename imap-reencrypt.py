@@ -29,7 +29,7 @@ exl_mode.add_argument('--list', help='List Mailbox folders.', action='store_true
 grp_gpg = args.add_argument_group('gpg key selection')
 grp_gpg.add_argument('--delkey', metavar='KEYGRIP', action='append', help='Remove keys from recipient list. (multi)', default=[])
 grp_gpg.add_argument('--addkey', metavar='KEYGRIP', action='append', help='Add keys to recipient list. (multi)', default=[])
-grp_gpg.add_argument('--del-allkeys', action='store_true', help='Clear recipient list before adding with --addkey.')
+grp_gpg.add_argument('--del-all-keys', action='store_true', help='Clear recipient list before adding with --addkey.')
 grp_gpg.add_argument('--only-for', metavar='KEYGRIP', help='Only repack messages that were encrypted to this key.')
 grp_gpg.add_argument('--always-trust', action='store_true', help='Always trust the recipient keys and skip trust validation.')
 
@@ -67,6 +67,6 @@ with imap.session(server, username, password) as session:
   # ALSO RE-ENCRYPT MESSAGES
   if args.repack:
     imap.repack_pgp(session, gpg, mailbox, msglist,
-      args.delkey, args.addkey, args.del_allkeys, args.only_for, args.dry_run,
+      args.delkey, args.addkey, args.del_all_keys, args.only_for, args.dry_run,
       args.always_trust)
 

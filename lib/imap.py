@@ -57,7 +57,7 @@ def search_encrypted(session, mailbox):
 
 # reencrypt messages for a new key and reupload
 def repack_pgp(session, gpg, mailbox, msglist,
-  delkeys, addkeys, del_allkeys, only=None, dryrun=True,
+  delkeys, addkeys, del_all_keys, only=None, dryrun=True,
   always_trust=False):
 
   # recursive repack for plaintext or pgp/mime payloads
@@ -66,7 +66,7 @@ def repack_pgp(session, gpg, mailbox, msglist,
     if isinstance(payload, list):
       for p in payload: repack(p)
     else:
-      newp = gpgmessage.repack(gpg, payload, delkeys, addkeys, del_allkeys, only, always_trust)
+      newp = gpgmessage.repack(gpg, payload, delkeys, addkeys, del_all_keys, only, always_trust)
       message.set_payload(newp)
 
   try:

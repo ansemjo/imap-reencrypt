@@ -52,10 +52,10 @@ def decrypt(gpg, message):
 
 
 # encrypt a message for an augmented recipient list
-def reencrypt(gpg, decr, delkeys, newkeys, del_allkeys, always_trust):
+def reencrypt(gpg, decr, delkeys, newkeys, del_all_keys, always_trust):
 
   # remove from / add keys to recipient set
-  r = decr.recipients if not del_allkeys else set([])
+  r = decr.recipients if not del_all_keys else set([])
   r -= set(delkeys)
   r |= set(newkeys)
   
@@ -75,7 +75,7 @@ def reencrypt(gpg, decr, delkeys, newkeys, del_allkeys, always_trust):
   
 
 # combine the above two functions
-def repack(gpg, message, delkeys, newkeys, del_allkeys=False, only_for=None, always_trust=False):
+def repack(gpg, message, delkeys, newkeys, del_all_keys=False, only_for=None, always_trust=False):
 
   # check for PGP tags
   if TAG_BEGIN in message and TAG_END in message:
@@ -92,7 +92,7 @@ def repack(gpg, message, delkeys, newkeys, del_allkeys=False, only_for=None, alw
     crypt = decrypt(gpg, inner)
     if only_for != None and only_for not in crypt.recipients:
       raise RecipientError('not for intended recipient')
-    crypt = reencrypt(gpg, crypt, delkeys, newkeys, del_allkeys, always_trust)
+    crypt = reencrypt(gpg, crypt, delkeys, newkeys, del_all_keys, always_trust)
 
     # return respliced message
     return message_splice(str(crypt), outer)
