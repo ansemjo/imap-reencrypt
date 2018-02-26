@@ -1,3 +1,6 @@
+# Copyright 2018 Anton Semjonov
+# SPDX-License-Identiter: MIT
+
 import contextlib
 
 @contextlib.contextmanager

@@ -1,3 +1,6 @@
+# Copyright 2018 Anton Semjonov
+# SPDX-License-Identiter: MIT
+
 import imaplib
 import contextlib
 from lib.mail import Mail

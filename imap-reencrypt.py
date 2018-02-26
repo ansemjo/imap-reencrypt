@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+# Copyright 2018 Anton Semjonov
+# SPDX-License-Identiter: MIT
+
 # local library
 from lib.config import get_imap_configuration as config
 from lib import imap

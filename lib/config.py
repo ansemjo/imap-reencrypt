@@ -1,3 +1,6 @@
+# Copyright 2018 Anton Semjonov
+# SPDX-License-Identiter: MIT
+
 import configparser
 
 def get_configuration(filepath, account=None):

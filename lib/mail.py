@@ -1,4 +1,6 @@
-# reinserted message through context libs
+# Copyright 2018 Anton Semjonov
+# SPDX-License-Identiter: MIT
+
 import contextlib
 import imaplib
 import email
@@ -47,10 +49,3 @@ def Mail(session, mailbox, message_id, expunge=False):
     # optionally directly expunge
     if expunge: session.expunge()
 
-
-# USAGE:
-# # append to subject line
-# if args.subject:
-#   with ReinsertableMessage(m, 'INBOX', msgid) as msg:
-#     del msg['Subject']
-#     msg['Subject'] = args.subject

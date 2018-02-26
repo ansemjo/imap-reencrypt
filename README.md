@@ -16,6 +16,19 @@ Python modules:
 - [`python-gnupg`](https://pypi.python.org/pypi/python-gnupg/0.4.1) (Not the `isislovecruft` fork.)
 - various built-in modules in Python 3.5+
 
+## WARNING
+
+I have written this script solely for my own, personal use. I shall _not_
+be liable for any damage done to your email! The error handling is
+probably flaky at best ..
+
+If in doubt, always use `--dry-run` and make sure you do not hit any
+exceptions. Then rerun without that flag.
+
+## License
+
+This project is licensed under the MIT license.
+
 ## Usage
 
 ### Configuration
