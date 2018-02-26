@@ -1,0 +1,7 @@
+[DEFAULT]
+account = main
+
+[main]
+server = mail.example.com
+username = someone@example.com
+password = SuperSecurePassword
