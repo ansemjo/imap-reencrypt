@@ -4,11 +4,11 @@
 import configparser
 
 
-def get_configuration(filepath, account=None):
+def get_configuration(conffile, account=None):
 
     # initialize and read configuration file
     parser = configparser.ConfigParser()
-    parser.read(filepath)
+    parser.read_file(conffile)
 
     # return configuration for account
     if account != None:
@@ -17,10 +17,10 @@ def get_configuration(filepath, account=None):
         return parser[parser.defaults()["account"]]
 
 
-def get_imap_configuration(filepath, account=None):
+def get_imap_configuration(conffile, account=None):
 
     # get configuration from above
-    c = get_configuration(filepath, account)
+    c = get_configuration(conffile, account)
 
     # return a list
     return (c["server"], c["username"], c["password"])

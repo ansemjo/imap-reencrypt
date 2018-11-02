@@ -15,6 +15,7 @@ import gnupg
 # parse commandline arguments
 args = argparse.ArgumentParser()
 
+args.add_argument('--config', help='Configuration file.', type=argparse.FileType('r'), default='config.ini')
 args.add_argument('--dry-run', action='store_true', help='Perform a dry-run. Do not change mails on server.')
 args.add_argument('--mailbox', help='Select Mailbox folder.', default='INBOX')
 args.add_argument('--account', help='Select account from config.ini file.')
@@ -37,7 +38,7 @@ grp_gpg.add_argument('--always-trust', action='store_true', help='Always trust t
 args = args.parse_args()
 
 # get configuration and initialize gpg
-server, username, password = config('config.ini', args.account)
+server, username, password = config(args.config, args.account)
 gpg = gnupg.GPG(use_agent=True)
 mailbox = imap.quoted_mailbox(args.mailbox)
 
