@@ -3,6 +3,7 @@
 
 import imaplib
 import contextlib
+import re
 from lib.mail import Mail
 from lib import gpgmessage
 from lib.consolecolor import color, COLOR
@@ -27,16 +28,15 @@ def cd(session, mailbox):
 
 # list all folders
 def ls(session):
-    folders = [f.decode() for f in session.list()[1]]
-    folders = [" ".join([p.strip() for p in reversed(f.split('"."'))]) for f in folders]
-    folders = "\n".join(folders)
+    folders = session.list()[1]
+    folders = '\n'.join((re.sub(r"^\([^)]+\)\s\".\"\s", "", f.decode()) for f in folders))
     return f"Mailbox folders:\n{folders}"
 
 
 # fetch a single message
-def fetch(session, mailbox, msgid):
+def fetch(session, mailbox, uid):
     cd(session, mailbox)
-    ok, response = session.fetch(msgid, "(RFC822)")
+    ok, response = session.uid('fetch', uid, "(RFC822)")
     if ok == "OK":
         return response[0][1].decode()
 
@@ -50,12 +50,12 @@ def search_encrypted(session, mailbox):
     mime = inline = []
 
     # search for PGP/MIME messages
-    ok, res = session.search(None, '(HEADER Content-Type "pgp-encrypted")')
+    ok, res = session.uid('search', None, '(HEADER Content-Type "pgp-encrypted")')
     if ok == "OK":
         mime = res[0].decode().split()
 
     # search for inline messages (boundaries in body)
-    ok, res = session.search(None, f'(BODY "-----BEGIN PGP MESSAGE-----")')
+    ok, res = session.uid('search', None, f'(BODY "-----BEGIN PGP MESSAGE-----")')
     if ok == "OK":
         inline = res[0].decode().split()
 

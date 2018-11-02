@@ -9,7 +9,7 @@ from lib.consolecolor import color, COLOR
 
 
 @contextlib.contextmanager
-def Mail(session, mailbox, message_id, expunge=False):
+def Mail(session, mailbox, message_uid, expunge=False):
 
     # select mailbox
     ok, response = session.select(mailbox)
@@ -17,7 +17,7 @@ def Mail(session, mailbox, message_id, expunge=False):
         raise Exception(response)
 
     # fetch message and split response
-    ok, response = session.fetch(str(message_id), "(FLAGS INTERNALDATE RFC822)")
+    ok, response = session.uid('fetch', str(message_uid), "(FLAGS INTERNALDATE RFC822)")
     if ok != "OK":
         raise Exception(response)
 
@@ -31,7 +31,7 @@ def Mail(session, mailbox, message_id, expunge=False):
 
     # debug
     with color(COLOR.BLUE):
-        print("Message ID:", mailbox, f"({message_id})")
+        print("Message UID:", mailbox, f"({message_uid})")
         print("From    :", mail["From"])
         print("Date    :", mail["Date"])
         print("Subject :", mail["Subject"])
@@ -46,7 +46,7 @@ def Mail(session, mailbox, message_id, expunge=False):
         with color(COLOR.RED):
             print("Message modified. Reuploading ..")
         session.append(mailbox, flags, date, mail.as_bytes())
-        session.store(message_id, "+FLAGS", "\\DELETED")
+        session.uid('store', message_uid, "+FLAGS", "\\DELETED")
 
         # optionally directly expunge
         if expunge:
