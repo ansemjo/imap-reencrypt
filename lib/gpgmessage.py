@@ -57,17 +57,24 @@ def decrypt(gpg, message):
 # encrypt a message for an augmented recipient list
 def reencrypt(gpg, decr, delkeys, newkeys, del_all_keys, always_trust):
 
+    # save original recipients
+    orig = decr.recipients.copy()
+
     # remove from / add keys to recipient set
-    r = decr.recipients if not del_all_keys else set([])
-    r -= set(delkeys)
-    r |= set(newkeys)
+    recp = decr.recipients if not del_all_keys else set([])
+    recp -= set(delkeys)
+    recp |= set(newkeys)
+
+    # check if recipient sets are identical
+    if orig == recp:
+        raise RecipientError("Recipient sets are identical. Skip.")
 
     # output new set
     with color(COLOR.YELLOW):
-        print("New Recipients:", "\n".join(r))
+        print("New Recipients:", "\n".join(recp))
 
     # encrypt
-    encr = gpg.encrypt(str(decr), r, always_trust=always_trust)
+    encr = gpg.encrypt(str(decr), recp, always_trust=always_trust)
 
     # return object or raise error
     if encr.ok:
@@ -94,7 +101,7 @@ def repack(gpg, message, delkeys, newkeys, del_all_keys=False, only_for=None, al
         # decrypt, optionally check if we are a recipient and reecnrypt
         crypt = decrypt(gpg, inner)
         if only_for != None and only_for not in crypt.recipients:
-            raise RecipientError("not for intended recipient")
+            raise RecipientError("Not for the intended recipient. Skip.")
         crypt = reencrypt(gpg, crypt, delkeys, newkeys, del_all_keys, always_trust)
 
         # return respliced message

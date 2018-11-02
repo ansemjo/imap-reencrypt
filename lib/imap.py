@@ -95,9 +95,9 @@ def repack_pgp(
                     with color(COLOR.RED):
                         print("No matching secret key. Skip.")
                     mail["dirty"] = False
-                except gpgmessage.RecipientError:
+                except gpgmessage.RecipientError as e:
                     with color(COLOR.YELLOW):
-                        print("Given key was not a recipient. Skip.")
+                        print(e)
                     mail["dirty"] = False
 
     finally:
