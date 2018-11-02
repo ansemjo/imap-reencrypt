@@ -28,10 +28,10 @@ grp_mode.add_argument('--repack', help='Re-encrypt messages after searching or s
 exl_mode.add_argument('--list', help='List Mailbox folders.', action='store_true')
 
 grp_gpg = args.add_argument_group('gpg key selection')
-grp_gpg.add_argument('--delkey', metavar='KEYGRIP', action='append', help='Remove keys from recipient list. (multi)', default=[])
-grp_gpg.add_argument('--addkey', metavar='KEYGRIP', action='append', help='Add keys to recipient list. (multi)', default=[])
+grp_gpg.add_argument('--delkey', metavar='FNGPRNT', action='append', help='Remove keys from recipient list. (multi)', default=[])
+grp_gpg.add_argument('--addkey', metavar='FNGPRNT', action='append', help='Add keys to recipient list. (multi)', default=[])
 grp_gpg.add_argument('--del-all-keys', action='store_true', help='Clear recipient list before adding with --addkey.')
-grp_gpg.add_argument('--only-for', metavar='KEYGRIP', help='Only repack messages that were encrypted to this key.')
+grp_gpg.add_argument('--only-for', metavar='FNGPRNT', help='Only repack messages that were encrypted to this key.')
 grp_gpg.add_argument('--always-trust', action='store_true', help='Always trust the recipient keys and skip trust validation.')
 
 
