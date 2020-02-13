@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Copyright 2018 Anton Semjonov
 # SPDX-License-Identiter: MIT
