@@ -99,6 +99,10 @@ def repack_pgp(
                     with color(COLOR.YELLOW):
                         print(e)
                     mail["dirty"] = False
+                except gpgmessage.DecryptionError as e:
+                    with color(COLOR.YELLOW):
+                        print(e)
+                    mail["dirty"] = False
 
     finally:
         if not dryrun:
