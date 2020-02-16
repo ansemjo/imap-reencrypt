@@ -51,7 +51,7 @@ def decrypt(gpg, message):
         if NO_SECKEY in d.stderr:
             raise NoSecretKeyError("No secret key available.")
         else:
-            raise DecryptionError(d.status)
+            raise DecryptionError(f'Could not decrypt message. GPG exited with message "{d.status}". STDERR:\n{d.stderr}')
 
 
 # encrypt a message for an augmented recipient list
